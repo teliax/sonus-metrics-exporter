@@ -5,10 +5,12 @@ services:
     tty: true
     stdin_open: true
     expose:
-      - 9171
+      - 9172
     ports:
-      - 9171:9171
+      - 9172:9172
     image: teliax/sonus-metrics-exporter:latest
     environment:
-      - REPOS=<REPOS you want to monitor>
-      - GITHUB_TOKEN=<your github api token>
+      - API_URL=https://127.0.0.1/api
+      - API_USER=username
+      - API_PASSWORD=password
+      - LISTEN_PORT=9172
