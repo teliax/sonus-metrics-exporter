@@ -2,32 +2,27 @@ package exporter
 
 import "github.com/prometheus/client_golang/prometheus"
 
-// AddMetrics - Add's all of the metrics to a map of strings, returns the map.
+// AddMetrics - Adds all of the metrics to a map of strings, returns the map.
 func AddMetrics() map[string]*prometheus.Desc {
 
 	APIMetrics := make(map[string]*prometheus.Desc)
 
-	APIMetrics["Usage"] = prometheus.NewDesc(
+	APIMetrics["TG_Usage"] = prometheus.NewDesc(
 		prometheus.BuildFQName("sonus", "TG", "usage_total"),
 		"Number of active calls",
 		[]string{"zone", "name", "direction"}, nil,
 	)
-	// APIMetrics["IssueDetails"] = prometheus.NewDesc(
-	// 	prometheus.BuildFQName("github", "issues", "total"),
-	// 	"Total number of open issues for given repository",
-	// 	[]string{"repo", "user", "state", "labels"}, nil,
-	// )
-	APIMetrics["Bandwidth"] = prometheus.NewDesc(
+	APIMetrics["TG_Bandwidth"] = prometheus.NewDesc(
 		prometheus.BuildFQName("sonus", "TG", "bytes"),
 		"Bandwidth in use by current calls",
 		[]string{"zone", "name", "direction"}, nil,
 	)
-	APIMetrics["State"] = prometheus.NewDesc(
+	APIMetrics["TG_State"] = prometheus.NewDesc(
 		prometheus.BuildFQName("sonus", "TG", "state"),
 		"State of the trunkgroup",
 		[]string{"zone", "name"}, nil,
 	)
-	APIMetrics["OBState"] = prometheus.NewDesc(
+	APIMetrics["TG_OBState"] = prometheus.NewDesc(
 		prometheus.BuildFQName("sonus", "TG", "outbound_state"),
 		"State of outbound calls on the trunkgroup",
 		[]string{"zone", "name"}, nil,

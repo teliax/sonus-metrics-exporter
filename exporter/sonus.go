@@ -3,9 +3,9 @@ package exporter
 import (
 	"encoding/xml"
 	"net/http"
+	"sonus-metrics-exporter/config"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/teliax/sonus-metrics-exporter/config"
 )
 
 // Exporter is used to store Metrics data and embeds the config struct.

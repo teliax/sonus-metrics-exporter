@@ -6,9 +6,10 @@ import (
 	"github.com/fatih/structs"
 	"github.com/infinityworks/go-common/logger"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
-	conf "github.com/teliax/sonus-metrics-exporter/config"
-	"github.com/teliax/sonus-metrics-exporter/exporter"
+	conf "sonus-metrics-exporter/config"
+	"sonus-metrics-exporter/exporter"
 )
 
 var (
@@ -37,7 +38,7 @@ func main() {
 	prometheus.MustRegister(&exporter)
 
 	// Setup HTTP handler
-	http.Handle(applicationCfg.MetricsPath(), prometheus.Handler())
+	http.Handle(applicationCfg.MetricsPath(), promhttp.Handler())
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`<html>
 		                <head><title>Sonus Trunkgroup Exporter</title></head>

@@ -2,15 +2,13 @@ package config
 
 import (
 	"fmt"
-
-	log "github.com/sirupsen/logrus"
-
 	"os"
 
 	cfg "github.com/infinityworks/go-common/config"
+	log "github.com/sirupsen/logrus"
 )
 
-// Config struct holds all of the runtime confgiguration for the application
+// Config struct holds all of the runtime configuration for the application
 type Config struct {
 	*cfg.BaseConfig
 	APIURL     string

@@ -53,7 +53,7 @@ func getResponse(url string, user string, pass string, ch chan<- *Response) erro
 	resp, err := getHTTPResponse(url, user, pass) // do this earlier
 
 	if err != nil {
-		return fmt.Errorf("Error converting body to byte array: %v", err)
+		return fmt.Errorf("Error processing HTTP request to '%s': %v.", url, err)
 	}
 
 	// Read the body to a byte array so it can be used elsewhere
@@ -62,7 +62,7 @@ func getResponse(url string, user string, pass string, ch chan<- *Response) erro
 	defer resp.Body.Close()
 
 	if err != nil {
-		return fmt.Errorf("Error converting body to byte array: %v", err)
+		return fmt.Errorf("Error reading response for request to '%s': %v", url, err)
 	}
 
 	if resp.StatusCode == 404 {
