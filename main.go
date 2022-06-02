@@ -3,23 +3,24 @@ package main
 import (
 	"net/http"
 
+	"sonus-metrics-exporter/config"
+	"sonus-metrics-exporter/exporter"
+
 	"github.com/fatih/structs"
 	"github.com/infinityworks/go-common/logger"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
-	conf "sonus-metrics-exporter/config"
-	"sonus-metrics-exporter/exporter"
 )
 
 var (
 	log            *logrus.Logger
-	applicationCfg conf.Config
+	applicationCfg config.Config
 	mets           map[string]*prometheus.Desc
 )
 
 func init() {
-	applicationCfg = conf.Init()
+	applicationCfg = config.Init()
 	mets = exporter.AddMetrics()
 	log = logger.Start(&applicationCfg)
 }

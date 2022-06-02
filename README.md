@@ -9,11 +9,12 @@ compatible endpoint.  Based on the
 This exporter is setup to take input from environment variables:
 
 ### Required
-* `API_URL` The URL of the Sonus API.  Should appear as `https://{ip}/api`
+* `API_URLS` Space-separated list of URLs for the Sonus API to be tried in order.  Should appear as `https://{ip1}/api https://{ip2}/api`
 * `API_USER` The username to use when logging in to the Sonus API.
 * `API_PASSWORD` The password to use when authenticating to the Sonus.
 
 ### Optional
+* `API_ADDRESSCONTEXTS` Space-separated list of addressContexts to iterate over, defaults to `default`
 * `LISTEN_PORT` The port you wish to run the container on, the Dockerfile defaults this to `9172`
 * `METRICS_PATH` the metrics URL path you wish to use, defaults to `/metrics`
 * `LOG_LEVEL` The level of logging the exporter will run with, defaults to `debug`
