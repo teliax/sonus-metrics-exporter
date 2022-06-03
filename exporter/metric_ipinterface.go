@@ -31,12 +31,12 @@ var IPInterfaceMetrics = map[string]*prometheus.Desc{
 	),
 	"IPInterface_Bandwidth_Receive": prometheus.NewDesc(
 		prometheus.BuildFQName("sonus", "ipinterface", "rxbandwidth"),
-		"Number of packets received on ipInterfaceGroup",
+		"Receive bandwidth allocated to interface, in bytes per second",
 		[]string{"name"}, nil,
 	),
 	"IPInterface_Bandwidth_Transmit": prometheus.NewDesc(
 		prometheus.BuildFQName("sonus", "ipinterface", "txbandwidth"),
-		"Number of packets transmitted on ipInterfaceGroup",
+		"Transmit bandwidth allocated to interface, in bytes per second",
 		[]string{"name"}, nil,
 	),
 	"IPInterface_Media_Streams": prometheus.NewDesc(
