@@ -41,7 +41,7 @@ sonus_fan_speed{fanID="FAN1/BOT",server="sbc01b"} 5632
 sonus_ipinterface_media_streams{name="IPINT1"} 0
 sonus_ipinterface_media_streams{name="IPINT2"} 98
 
-# HELP sonus_ipinterface_rxbandwidth Number of packets received on ipInterfaceGroup
+# HELP sonus_ipinterface_rxbandwidth Receive bandwidth in use on interface, in bytes per second
 # TYPE sonus_ipinterface_rxbandwidth gauge
 sonus_ipinterface_rxbandwidth{name="IPINT1"} 0
 sonus_ipinterface_rxbandwidth{name="IPINT2"} 4523
@@ -56,7 +56,7 @@ sonus_ipinterface_rxpacket2{name="IPINT2"} 3.817481033e+09
 sonus_ipinterface_status{name="IPINT1",status_text="resAllocated"} 0
 sonus_ipinterface_status{name="IPINT2",status_text="resAllocated"} 0
 
-# HELP sonus_ipinterface_txbandwidth Number of packets transmitted on ipInterfaceGroup
+# HELP sonus_ipinterface_txbandwidth Transmit bandwidth in use on interface, in bytes per second
 # TYPE sonus_ipinterface_txbandwidth gauge
 sonus_ipinterface_txbandwidth{name="IPINT1"} 0
 sonus_ipinterface_txbandwidth{name="IPINT2"} 3424

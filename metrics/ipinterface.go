@@ -1,19 +1,30 @@
-package exporter
+package metrics
 
 import (
 	"encoding/xml"
 	"fmt"
+
+	"sonus-metrics-exporter/lib"
+
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 )
 
+var IPInterfaceMetric = lib.SonusMetric{
+	Name:       "IPInterface",
+	Processor:  processIPInterfaceStatus,
+	URLGetter:  getIPInterfaceGroupUrl,
+	APIMetrics: ipInterfaceMetrics,
+	Repetition: lib.RepeatPerAddressContextIpInterfaceGroup,
+}
+
 const ipInterfaceGroupURLFormat = "%s/operational/addressContext/%s/ipInterfaceGroup/%s/ipInterfaceStatus/"
 
-func GetIPInterfaceGroupUrl(ctx MetricContext) string {
+func getIPInterfaceGroupUrl(ctx lib.MetricContext) string {
 	return fmt.Sprintf(ipInterfaceGroupURLFormat, ctx.APIBase, ctx.AddressContext, ctx.IPInterfaceGroup)
 }
 
-var IPInterfaceMetrics = map[string]*prometheus.Desc{
+var ipInterfaceMetrics = map[string]*prometheus.Desc{
 	"IPInterface_Oper_Status": prometheus.NewDesc(
 		prometheus.BuildFQName("sonus", "ipinterface", "status"),
 		"Current status of ipInterfaceGroup",
@@ -31,12 +42,12 @@ var IPInterfaceMetrics = map[string]*prometheus.Desc{
 	),
 	"IPInterface_Bandwidth_Receive": prometheus.NewDesc(
 		prometheus.BuildFQName("sonus", "ipinterface", "rxbandwidth"),
-		"Receive bandwidth allocated to interface, in bytes per second",
+		"Receive bandwidth in use on interface, in bytes per second",
 		[]string{"name"}, nil,
 	),
 	"IPInterface_Bandwidth_Transmit": prometheus.NewDesc(
 		prometheus.BuildFQName("sonus", "ipinterface", "txbandwidth"),
-		"Transmit bandwidth allocated to interface, in bytes per second",
+		"Transmit bandwidth in use on interface, in bytes per second",
 		[]string{"name"}, nil,
 	),
 	"IPInterface_Media_Streams": prometheus.NewDesc(
@@ -46,28 +57,28 @@ var IPInterfaceMetrics = map[string]*prometheus.Desc{
 	),
 }
 
-func ProcessIPInterfaceStatus(ctx MetricContext, xmlBody *[]byte, ch chan<- prometheus.Metric, result chan<- bool) {
+func processIPInterfaceStatus(ctx lib.MetricContext, xmlBody *[]byte, ch chan<- prometheus.Metric, result chan<- lib.MetricResult) {
 	ipInterfaces := new(ipInterfaceStatusCollection)
 	err := xml.Unmarshal(*xmlBody, &ipInterfaces)
 	if err != nil {
 		log.Errorf("Failed to deserialize ipInterfaceStatus XML: %v", err)
-		result <- false
+		result <- lib.MetricResult{Success: false, Errors: []*error{&err}}
 		return
 	}
 
 	for _, ipInterfaceGroup := range ipInterfaces.IPInterfaces {
-		ch <- prometheus.MustNewConstMetric(IPInterfaceMetrics["IPInterface_Oper_Status"], prometheus.GaugeValue, ipInterfaceGroup.OperStateToMetric(), ipInterfaceGroup.Name, ipInterfaceGroup.OperState)
+		ch <- prometheus.MustNewConstMetric(ipInterfaceMetrics["IPInterface_Oper_Status"], prometheus.GaugeValue, ipInterfaceGroup.operStateToMetric(), ipInterfaceGroup.Name, ipInterfaceGroup.OperState)
 
-		ch <- prometheus.MustNewConstMetric(IPInterfaceMetrics["IPInterface_Packets_Received"], prometheus.CounterValue, ipInterfaceGroup.RxPackets, ipInterfaceGroup.Name)
-		ch <- prometheus.MustNewConstMetric(IPInterfaceMetrics["IPInterface_Packets_Transmitted"], prometheus.CounterValue, ipInterfaceGroup.TxPackets, ipInterfaceGroup.Name)
+		ch <- prometheus.MustNewConstMetric(ipInterfaceMetrics["IPInterface_Packets_Received"], prometheus.CounterValue, ipInterfaceGroup.RxPackets, ipInterfaceGroup.Name)
+		ch <- prometheus.MustNewConstMetric(ipInterfaceMetrics["IPInterface_Packets_Transmitted"], prometheus.CounterValue, ipInterfaceGroup.TxPackets, ipInterfaceGroup.Name)
 
-		ch <- prometheus.MustNewConstMetric(IPInterfaceMetrics["IPInterface_Bandwidth_Receive"], prometheus.GaugeValue, ipInterfaceGroup.RxActualBandwidth, ipInterfaceGroup.Name)
-		ch <- prometheus.MustNewConstMetric(IPInterfaceMetrics["IPInterface_Bandwidth_Transmit"], prometheus.GaugeValue, ipInterfaceGroup.TxActualBandwidth, ipInterfaceGroup.Name)
+		ch <- prometheus.MustNewConstMetric(ipInterfaceMetrics["IPInterface_Bandwidth_Receive"], prometheus.GaugeValue, ipInterfaceGroup.RxActualBandwidth, ipInterfaceGroup.Name)
+		ch <- prometheus.MustNewConstMetric(ipInterfaceMetrics["IPInterface_Bandwidth_Transmit"], prometheus.GaugeValue, ipInterfaceGroup.TxActualBandwidth, ipInterfaceGroup.Name)
 
-		ch <- prometheus.MustNewConstMetric(IPInterfaceMetrics["IPInterface_Media_Streams"], prometheus.GaugeValue, ipInterfaceGroup.NumMediaStreams, ipInterfaceGroup.Name)
+		ch <- prometheus.MustNewConstMetric(ipInterfaceMetrics["IPInterface_Media_Streams"], prometheus.GaugeValue, ipInterfaceGroup.NumMediaStreams, ipInterfaceGroup.Name)
 	}
-	log.Info("IP Interface Metrics collected")
-	result <- true
+	log.Infof("IP Interface Metrics for Address Context %q, ipInterfaceGroup %q collected", ctx.AddressContext, ctx.IPInterfaceGroup)
+	result <- lib.MetricResult{Success: true}
 }
 
 /*
@@ -110,7 +121,7 @@ type ipInterfaceStatus struct {
 	NumMediaStreams   float64 `xml:"http://sonusnet.com/ns/mibs/SONUS-GEN2-IP-INTERFACE/1.0 numMediaStreams"`
 }
 
-func (i ipInterfaceStatus) OperStateToMetric() float64 {
+func (i ipInterfaceStatus) operStateToMetric() float64 {
 	switch i.OperState {
 	case "resAllocated":
 		return 0

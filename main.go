@@ -5,6 +5,8 @@ import (
 
 	"sonus-metrics-exporter/config"
 	"sonus-metrics-exporter/exporter"
+	"sonus-metrics-exporter/lib"
+	"sonus-metrics-exporter/metrics"
 
 	"github.com/fatih/structs"
 	"github.com/infinityworks/go-common/logger"
@@ -16,12 +18,19 @@ import (
 var (
 	log            *logrus.Logger
 	applicationCfg config.Config
-	mets           map[string]*prometheus.Desc
+
+	metricList = []lib.SonusMetric{
+		metrics.DSPMetric,
+		metrics.FanMetric,
+		metrics.IPInterfaceMetric,
+		metrics.PowerSupplyMetric,
+		metrics.SipStatisticMetric,
+		metrics.TGMetric,
+	}
 )
 
 func init() {
 	applicationCfg = config.Init()
-	mets = exporter.AddMetrics()
 	log = logger.Start(&applicationCfg)
 }
 
@@ -29,14 +38,14 @@ func main() {
 
 	log.WithFields(structs.Map(applicationCfg)).Info("Starting Exporter")
 
-	exporter := exporter.Exporter{
-		APIMetrics: mets,
-		Config:     applicationCfg,
+	ex := exporter.Exporter{
+		Metrics: metricList,
+		Config:  applicationCfg,
 	}
 
 	// Register Metrics from each of the endpoints
 	// This invokes the Collect method through the prometheus client libraries.
-	prometheus.MustRegister(&exporter)
+	prometheus.MustRegister(&ex)
 
 	// Setup HTTP handler
 	http.Handle(applicationCfg.MetricsPath(), promhttp.Handler())

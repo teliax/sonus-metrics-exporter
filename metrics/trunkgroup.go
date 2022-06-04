@@ -1,18 +1,29 @@
-package exporter
+package metrics
 
 import (
 	"encoding/xml"
+
+	"sonus-metrics-exporter/lib"
+
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 )
 
+var TGMetric = lib.SonusMetric{
+	Name:       "TrunkGroup",
+	Processor:  processTGs,
+	URLGetter:  getTGUrl,
+	APIMetrics: tgMetrics,
+	Repetition: lib.RepeatNone,
+}
+
 const trunkGroupUrlSuffix = "/operational/global/globalTrunkGroupStatus/"
 
-func GetTGUrl(ctx MetricContext) string {
+func getTGUrl(ctx lib.MetricContext) string {
 	return ctx.APIBase + trunkGroupUrlSuffix
 }
 
-var TGMetrics = map[string]*prometheus.Desc{
+var tgMetrics = map[string]*prometheus.Desc{
 	"TG_Bandwidth": prometheus.NewDesc(
 		prometheus.BuildFQName("sonus", "TG", "bytes"),
 		"Bandwidth in use by current calls",
@@ -40,26 +51,26 @@ var TGMetrics = map[string]*prometheus.Desc{
 	),
 }
 
-func ProcessTGs(ctx MetricContext, xmlBody *[]byte, ch chan<- prometheus.Metric, result chan<- bool) {
+func processTGs(ctx lib.MetricContext, xmlBody *[]byte, ch chan<- prometheus.Metric, result chan<- lib.MetricResult) {
 	tgs := new(trunkGroupCollection)
 	err := xml.Unmarshal(*xmlBody, &tgs)
 	if err != nil {
 		log.Errorf("Failed to deserialize globalTrunkGroupStatus XML: %v", err)
-		result <- false
+		result <- lib.MetricResult{Success: false, Errors: []*error{&err}}
 		return
 	}
 
 	for _, tg := range tgs.TrunkGroupStatus {
-		ch <- prometheus.MustNewConstMetric(TGMetrics["TG_Usage"], prometheus.GaugeValue, tg.InboundCallsUsage, tg.Zone, tg.Name, "inbound")
-		ch <- prometheus.MustNewConstMetric(TGMetrics["TG_Usage"], prometheus.GaugeValue, tg.OutboundCallsUsage, tg.Zone, tg.Name, "outbound")
-		ch <- prometheus.MustNewConstMetric(TGMetrics["TG_Bandwidth"], prometheus.GaugeValue, tg.BandwidthInboundUsage, tg.Zone, tg.Name, "inbound")
-		ch <- prometheus.MustNewConstMetric(TGMetrics["TG_Bandwidth"], prometheus.GaugeValue, tg.BandwidthOutboundUsage, tg.Zone, tg.Name, "outbound")
-		ch <- prometheus.MustNewConstMetric(TGMetrics["TG_TotalChans"], prometheus.GaugeValue, tg.TotalCallsConfigured, tg.Zone, tg.Name)
-		ch <- prometheus.MustNewConstMetric(TGMetrics["TG_State"], prometheus.GaugeValue, trunkGroupStatus.StateToMetric(*tg), tg.Zone, tg.Name)
-		ch <- prometheus.MustNewConstMetric(TGMetrics["TG_OBState"], prometheus.GaugeValue, trunkGroupStatus.OutStateToMetric(*tg), tg.Zone, tg.Name)
+		ch <- prometheus.MustNewConstMetric(tgMetrics["TG_Usage"], prometheus.GaugeValue, tg.InboundCallsUsage, tg.Zone, tg.Name, "inbound")
+		ch <- prometheus.MustNewConstMetric(tgMetrics["TG_Usage"], prometheus.GaugeValue, tg.OutboundCallsUsage, tg.Zone, tg.Name, "outbound")
+		ch <- prometheus.MustNewConstMetric(tgMetrics["TG_Bandwidth"], prometheus.GaugeValue, tg.BandwidthInboundUsage, tg.Zone, tg.Name, "inbound")
+		ch <- prometheus.MustNewConstMetric(tgMetrics["TG_Bandwidth"], prometheus.GaugeValue, tg.BandwidthOutboundUsage, tg.Zone, tg.Name, "outbound")
+		ch <- prometheus.MustNewConstMetric(tgMetrics["TG_TotalChans"], prometheus.GaugeValue, tg.TotalCallsConfigured, tg.Zone, tg.Name)
+		ch <- prometheus.MustNewConstMetric(tgMetrics["TG_State"], prometheus.GaugeValue, trunkGroupStatus.stateToMetric(*tg), tg.Zone, tg.Name)
+		ch <- prometheus.MustNewConstMetric(tgMetrics["TG_OBState"], prometheus.GaugeValue, trunkGroupStatus.outStateToMetric(*tg), tg.Zone, tg.Name)
 	}
 	log.Info("Trunk Group Metrics collected")
-	result <- true
+	result <- lib.MetricResult{Success: true}
 }
 
 /*
@@ -111,7 +122,7 @@ type trunkGroupStatus struct {
 	Zone                       string  `xml:"http://sonusnet.com/ns/mibs/SONUS-GLOBAL-TRUNKGROUP/1.0 zone"`
 }
 
-func (t trunkGroupStatus) StateToMetric() float64 {
+func (t trunkGroupStatus) stateToMetric() float64 {
 	switch t.State {
 	case "inService":
 		return 1
@@ -120,7 +131,7 @@ func (t trunkGroupStatus) StateToMetric() float64 {
 	}
 }
 
-func (t trunkGroupStatus) OutStateToMetric() float64 {
+func (t trunkGroupStatus) outStateToMetric() float64 {
 	switch t.PacketOutDetectState {
 	case "normal":
 		return 1

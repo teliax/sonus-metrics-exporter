@@ -1,18 +1,29 @@
-package exporter
+package metrics
 
 import (
 	"encoding/xml"
+
+	"sonus-metrics-exporter/lib"
+
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 )
 
+var DSPMetric = lib.SonusMetric{
+	Name:       "DSP",
+	Processor:  processDSPUsage,
+	URLGetter:  getDSPUrl,
+	APIMetrics: dspMetrics,
+	Repetition: lib.RepeatNone,
+}
+
 const dspUrlSuffix = "/operational/system/dspStatus/dspUsage/"
 
-func GetDSPUrl(ctx MetricContext) string {
+func getDSPUrl(ctx lib.MetricContext) string {
 	return ctx.APIBase + dspUrlSuffix
 }
 
-var DSPMetrics = map[string]*prometheus.Desc{
+var dspMetrics = map[string]*prometheus.Desc{
 	"DSP_Resources_Used": prometheus.NewDesc(
 		prometheus.BuildFQName("sonus", "dsp", "resources_used"),
 		"Usage of DSP resources per slot",
@@ -35,51 +46,51 @@ var DSPMetrics = map[string]*prometheus.Desc{
 	),
 }
 
-func ProcessDSPUsage(ctx MetricContext, xmlBody *[]byte, ch chan<- prometheus.Metric, result chan<- bool) {
+func processDSPUsage(ctx lib.MetricContext, xmlBody *[]byte, ch chan<- prometheus.Metric, result chan<- lib.MetricResult) {
 	dsp := new(dspUsageCollection)
 	err := xml.Unmarshal(*xmlBody, &dsp)
 	if err != nil {
 		log.Errorf("Failed to deserialize dspStatus XML: %v", err)
-		result <- false
+		result <- lib.MetricResult{Success: false, Errors: []*error{&err}}
 		return
 	}
 
 	var d = dsp.DSPUsage
 
-	ch <- prometheus.MustNewConstMetric(DSPMetrics["DSP_Resources_Used"], prometheus.GaugeValue, d.Slot1ResourcesUtilized, d.SystemName, "1")
-	ch <- prometheus.MustNewConstMetric(DSPMetrics["DSP_Resources_Used"], prometheus.GaugeValue, d.Slot2ResourcesUtilized, d.SystemName, "2")
-	ch <- prometheus.MustNewConstMetric(DSPMetrics["DSP_Resources_Used"], prometheus.GaugeValue, d.Slot3ResourcesUtilized, d.SystemName, "3")
-	ch <- prometheus.MustNewConstMetric(DSPMetrics["DSP_Resources_Used"], prometheus.GaugeValue, d.Slot4ResourcesUtilized, d.SystemName, "4")
+	ch <- prometheus.MustNewConstMetric(dspMetrics["DSP_Resources_Used"], prometheus.GaugeValue, d.Slot1ResourcesUtilized, d.SystemName, "1")
+	ch <- prometheus.MustNewConstMetric(dspMetrics["DSP_Resources_Used"], prometheus.GaugeValue, d.Slot2ResourcesUtilized, d.SystemName, "2")
+	ch <- prometheus.MustNewConstMetric(dspMetrics["DSP_Resources_Used"], prometheus.GaugeValue, d.Slot3ResourcesUtilized, d.SystemName, "3")
+	ch <- prometheus.MustNewConstMetric(dspMetrics["DSP_Resources_Used"], prometheus.GaugeValue, d.Slot4ResourcesUtilized, d.SystemName, "4")
 
-	ch <- prometheus.MustNewConstMetric(DSPMetrics["DSP_Resources_Total"], prometheus.GaugeValue, d.CompressionTotal, d.SystemName)
+	ch <- prometheus.MustNewConstMetric(dspMetrics["DSP_Resources_Total"], prometheus.GaugeValue, d.CompressionTotal, d.SystemName)
 
-	ch <- prometheus.MustNewConstMetric(DSPMetrics["DSP_Compression_Utilization"], prometheus.GaugeValue, d.CompressionUtilization, d.SystemName)
+	ch <- prometheus.MustNewConstMetric(dspMetrics["DSP_Compression_Utilization"], prometheus.GaugeValue, d.CompressionUtilization, d.SystemName)
 
-	ch <- prometheus.MustNewConstMetric(DSPMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.G711Utilization, d.SystemName, "G.711")
-	ch <- prometheus.MustNewConstMetric(DSPMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.G711SsUtilization, d.SystemName, "G.711 Silence Suppression")
-	ch <- prometheus.MustNewConstMetric(DSPMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.G726Utilization, d.SystemName, "G.726")
-	ch <- prometheus.MustNewConstMetric(DSPMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.G7231Utilization, d.SystemName, "G.723.1")
-	ch <- prometheus.MustNewConstMetric(DSPMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.G722Utilization, d.SystemName, "G.722")
-	ch <- prometheus.MustNewConstMetric(DSPMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.G7221Utilization, d.SystemName, "G.722.1")
-	ch <- prometheus.MustNewConstMetric(DSPMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.G729AbUtilization, d.SystemName, "G.729")
-	ch <- prometheus.MustNewConstMetric(DSPMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.EcmUtilization, d.SystemName, "ECM")
-	ch <- prometheus.MustNewConstMetric(DSPMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.IlbcUtilization, d.SystemName, "iLBC")
-	ch <- prometheus.MustNewConstMetric(DSPMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.AmrNbUtilization, d.SystemName, "AMR-NB")
-	ch <- prometheus.MustNewConstMetric(DSPMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.AmrWbUtilization, d.SystemName, "AMR-WB")
-	ch <- prometheus.MustNewConstMetric(DSPMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.ToneUtilization, d.SystemName, "Tone")
-	ch <- prometheus.MustNewConstMetric(DSPMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.G711V8Utilization, d.SystemName, "G.711 V8")
-	ch <- prometheus.MustNewConstMetric(DSPMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.G711SsV8Utilization, d.SystemName, "G.711 Silence Suppression V8")
-	ch <- prometheus.MustNewConstMetric(DSPMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.G726V8Utilization, d.SystemName, "G.726 V8")
-	ch <- prometheus.MustNewConstMetric(DSPMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.G7231V8Utilization, d.SystemName, "G.723.1 V8")
-	ch <- prometheus.MustNewConstMetric(DSPMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.G722V8Utilization, d.SystemName, "G.722 V8")
-	ch <- prometheus.MustNewConstMetric(DSPMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.G7221V8Utilization, d.SystemName, "G.722.1 V8")
-	ch <- prometheus.MustNewConstMetric(DSPMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.G729AbV8Utilization, d.SystemName, "G.729 V8")
-	ch <- prometheus.MustNewConstMetric(DSPMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.EcmV34Utilization, d.SystemName, "ECM V.34")
-	ch <- prometheus.MustNewConstMetric(DSPMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.IlbcV8Utilization, d.SystemName, "iLBC V8")
-	ch <- prometheus.MustNewConstMetric(DSPMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.OpusUtilization, d.SystemName, "Opus")
+	ch <- prometheus.MustNewConstMetric(dspMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.G711Utilization, d.SystemName, "G.711")
+	ch <- prometheus.MustNewConstMetric(dspMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.G711SsUtilization, d.SystemName, "G.711 Silence Suppression")
+	ch <- prometheus.MustNewConstMetric(dspMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.G726Utilization, d.SystemName, "G.726")
+	ch <- prometheus.MustNewConstMetric(dspMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.G7231Utilization, d.SystemName, "G.723.1")
+	ch <- prometheus.MustNewConstMetric(dspMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.G722Utilization, d.SystemName, "G.722")
+	ch <- prometheus.MustNewConstMetric(dspMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.G7221Utilization, d.SystemName, "G.722.1")
+	ch <- prometheus.MustNewConstMetric(dspMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.G729AbUtilization, d.SystemName, "G.729")
+	ch <- prometheus.MustNewConstMetric(dspMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.EcmUtilization, d.SystemName, "ECM")
+	ch <- prometheus.MustNewConstMetric(dspMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.IlbcUtilization, d.SystemName, "iLBC")
+	ch <- prometheus.MustNewConstMetric(dspMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.AmrNbUtilization, d.SystemName, "AMR-NB")
+	ch <- prometheus.MustNewConstMetric(dspMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.AmrWbUtilization, d.SystemName, "AMR-WB")
+	ch <- prometheus.MustNewConstMetric(dspMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.ToneUtilization, d.SystemName, "Tone")
+	ch <- prometheus.MustNewConstMetric(dspMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.G711V8Utilization, d.SystemName, "G.711 V8")
+	ch <- prometheus.MustNewConstMetric(dspMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.G711SsV8Utilization, d.SystemName, "G.711 Silence Suppression V8")
+	ch <- prometheus.MustNewConstMetric(dspMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.G726V8Utilization, d.SystemName, "G.726 V8")
+	ch <- prometheus.MustNewConstMetric(dspMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.G7231V8Utilization, d.SystemName, "G.723.1 V8")
+	ch <- prometheus.MustNewConstMetric(dspMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.G722V8Utilization, d.SystemName, "G.722 V8")
+	ch <- prometheus.MustNewConstMetric(dspMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.G7221V8Utilization, d.SystemName, "G.722.1 V8")
+	ch <- prometheus.MustNewConstMetric(dspMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.G729AbV8Utilization, d.SystemName, "G.729 V8")
+	ch <- prometheus.MustNewConstMetric(dspMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.EcmV34Utilization, d.SystemName, "ECM V.34")
+	ch <- prometheus.MustNewConstMetric(dspMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.IlbcV8Utilization, d.SystemName, "iLBC V8")
+	ch <- prometheus.MustNewConstMetric(dspMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.OpusUtilization, d.SystemName, "Opus")
 
 	log.Info("DSP Metrics collected")
-	result <- true
+	result <- lib.MetricResult{Success: true}
 }
 
 /*

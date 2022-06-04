@@ -1,18 +1,29 @@
-package exporter
+package metrics
 
 import (
 	"encoding/xml"
+
+	"sonus-metrics-exporter/lib"
+
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 )
 
+var PowerSupplyMetric = lib.SonusMetric{
+	Name:       "PowerSupply",
+	Processor:  processPowerSupplies,
+	URLGetter:  getPowerSupplyUrl,
+	APIMetrics: powerSupplyMetrics,
+	Repetition: lib.RepeatNone,
+}
+
 const powerSupplyUrlSuffix = "/operational/system/powerSupplyStatus/"
 
-func GetPowerSupplyUrl(ctx MetricContext) string {
+func getPowerSupplyUrl(ctx lib.MetricContext) string {
 	return ctx.APIBase + powerSupplyUrlSuffix
 }
 
-var PowerSupplyMetrics = map[string]*prometheus.Desc{
+var powerSupplyMetrics = map[string]*prometheus.Desc{
 	"PowerSupply_Power_Fault": prometheus.NewDesc(
 		prometheus.BuildFQName("sonus", "powersupply", "powerfault"),
 		"Is there a power fault, per supply",
@@ -25,21 +36,21 @@ var PowerSupplyMetrics = map[string]*prometheus.Desc{
 	),
 }
 
-func ProcessPowerSupplies(ctx MetricContext, xmlBody *[]byte, ch chan<- prometheus.Metric, result chan<- bool) {
+func processPowerSupplies(ctx lib.MetricContext, xmlBody *[]byte, ch chan<- prometheus.Metric, result chan<- lib.MetricResult) {
 	powerSupplies := new(powerSupplyCollection)
 	err := xml.Unmarshal(*xmlBody, &powerSupplies)
 	if err != nil {
 		log.Errorf("Failed to deserialize powerSupplyStatus XML: %v", err)
-		result <- false
+		result <- lib.MetricResult{Success: false, Errors: []*error{&err}}
 		return
 	}
 
 	for _, psu := range powerSupplies.PowerSupplyStatus {
-		ch <- prometheus.MustNewConstMetric(PowerSupplyMetrics["PowerSupply_Power_Fault"], prometheus.GaugeValue, psu.powerFaultToMetric(), psu.ServerName, psu.PowerSupplyID)
-		ch <- prometheus.MustNewConstMetric(PowerSupplyMetrics["PowerSupply_Voltage_Fault"], prometheus.GaugeValue, psu.voltageFaultToMetric(), psu.ServerName, psu.PowerSupplyID)
+		ch <- prometheus.MustNewConstMetric(powerSupplyMetrics["PowerSupply_Power_Fault"], prometheus.GaugeValue, psu.powerFaultToMetric(), psu.ServerName, psu.PowerSupplyID)
+		ch <- prometheus.MustNewConstMetric(powerSupplyMetrics["PowerSupply_Voltage_Fault"], prometheus.GaugeValue, psu.voltageFaultToMetric(), psu.ServerName, psu.PowerSupplyID)
 	}
 	log.Info("Power Supply Metrics collected")
-	result <- true
+	result <- lib.MetricResult{Success: true}
 }
 
 /*

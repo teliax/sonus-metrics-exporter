@@ -7,15 +7,15 @@ import (
 	"net/http"
 )
 
-// Response struct is used to store http.Response and associated data
-type Response struct {
+// HTTPResponse struct is used to store http.Response and associated data
+type HTTPResponse struct {
 	url      string
 	response *http.Response
 	body     *[]byte
 }
 
-// doHTTPRequest makes an individual HTTP request and returns a *Response
-func doHTTPRequest(client *http.Client, url string, user string, pass string) (*Response, error) {
+// doHTTPRequest makes an individual HTTP request and returns a *HTTPResponse
+func doHTTPRequest(client *http.Client, url string, user string, pass string) (*HTTPResponse, error) {
 	log.Infof("Fetching %s \n", url)
 
 	req, err := http.NewRequest("GET", url, nil)
@@ -32,6 +32,10 @@ func doHTTPRequest(client *http.Client, url string, user string, pass string) (*
 		return nil, err
 	}
 
+	if resp.StatusCode == 404 {
+		return nil, fmt.Errorf("Error: Received 404 status from Sonus API, ensure the URL is correct. ")
+	}
+
 	// Read the body to a byte array so it can be used elsewhere
 	body, err := ioutil.ReadAll(resp.Body)
 
@@ -41,9 +45,5 @@ func doHTTPRequest(client *http.Client, url string, user string, pass string) (*
 		return nil, err
 	}
 
-	if resp.StatusCode == 404 {
-		return nil, fmt.Errorf("Error: Received 404 status from Sonus API, ensure the URL is correct. ")
-	}
-
-	return &Response{url, resp, &body}, nil
+	return &HTTPResponse{url, resp, &body}, nil
 }
