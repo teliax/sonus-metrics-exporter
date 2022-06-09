@@ -10,15 +10,18 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	sipStatisticsName      = "SipStatistic"
+	sipStatisticsURLFormat = "%s/operational/addressContext/%s/zone/%s/sipCurrentStatistics/"
+)
+
 var SipStatisticMetric = lib.SonusMetric{
-	Name:       "SipStatistic",
+	Name:       sipStatisticsName,
 	Processor:  processSipStatistics,
 	URLGetter:  getSipStatisticsUrl,
 	APIMetrics: sipStatisticMetrics,
 	Repetition: lib.RepeatPerAddressContextZone,
 }
-
-const sipStatisticsURLFormat = "%s/operational/addressContext/%s/zone/%s/sipCurrentStatistics/"
 
 func getSipStatisticsUrl(ctx lib.MetricContext) string {
 	return fmt.Sprintf(sipStatisticsURLFormat, ctx.APIBase, ctx.AddressContext, ctx.Zone)
@@ -48,15 +51,22 @@ var sipStatisticMetrics = map[string]*prometheus.Desc{
 }
 
 func processSipStatistics(ctx lib.MetricContext, xmlBody *[]byte, ch chan<- prometheus.Metric, result chan<- lib.MetricResult) {
+	var (
+		errors   []*error
+		sipStats = new(sipStatisticCollection)
+	)
+
 	if len(*xmlBody) == 0 {
-		result <- lib.MetricResult{Success: true}
+		result <- lib.MetricResult{Name: sipStatisticsName, Success: true}
 		return
 	}
-	sipStats := new(sipStatisticCollection)
+
 	err := xml.Unmarshal(*xmlBody, &sipStats)
+
 	if err != nil {
 		log.Errorf("Failed to deserialize sipCurrentStatistics XML: %v", err)
-		result <- lib.MetricResult{Success: false, Errors: []*error{&err}}
+		errors = append(errors, &err)
+		result <- lib.MetricResult{Name: sipStatisticsName, Success: false, Errors: errors}
 		return
 	}
 
@@ -118,7 +128,7 @@ func processSipStatistics(ctx lib.MetricContext, xmlBody *[]byte, ch chan<- prom
 		ch <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Resp_Received"], prometheus.CounterValue, sipStat.RcvNonInvErr, ctx.Zone, sipStat.Name, "Non-INVITE error")
 	}
 	log.Infof("SIP Statistics Metrics for Address Context %q, zone %q collected", ctx.AddressContext, ctx.Zone)
-	result <- lib.MetricResult{Success: true}
+	result <- lib.MetricResult{Name: sipStatisticsName, Success: true}
 }
 
 /*

@@ -16,7 +16,7 @@ type HTTPResponse struct {
 
 // doHTTPRequest makes an individual HTTP request and returns a *HTTPResponse
 func doHTTPRequest(client *http.Client, url string, user string, pass string) (*HTTPResponse, error) {
-	log.Infof("Fetching %s \n", url)
+	log.Infof("Fetching %q \n", url)
 
 	req, err := http.NewRequest("GET", url, nil)
 
@@ -33,7 +33,7 @@ func doHTTPRequest(client *http.Client, url string, user string, pass string) (*
 	}
 
 	if resp.StatusCode == 404 {
-		return nil, fmt.Errorf("Error: Received 404 status from Sonus API, ensure the URL is correct. ")
+		return nil, fmt.Errorf("Received 404 status from Sonus API, ensure the URL is correct. ")
 	}
 
 	// Read the body to a byte array so it can be used elsewhere

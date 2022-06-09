@@ -10,6 +10,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+func getServerStatusURL(apiBase string) string {
+	return fmt.Sprintf("%s/operational/system/serverStatus/", apiBase)
+}
+
 func (a *AddressContext) getZoneStatusURL(ctx lib.MetricContext) string {
 	return fmt.Sprintf("%s/operational/addressContext/%s/zoneStatus/", ctx.APIBase, a.Name)
 }

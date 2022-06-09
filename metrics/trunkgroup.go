@@ -9,15 +9,18 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	trunkGroupName      = "TrunkGroup"
+	trunkGroupUrlSuffix = "/operational/global/globalTrunkGroupStatus/"
+)
+
 var TGMetric = lib.SonusMetric{
-	Name:       "TrunkGroup",
+	Name:       trunkGroupName,
 	Processor:  processTGs,
 	URLGetter:  getTGUrl,
 	APIMetrics: tgMetrics,
 	Repetition: lib.RepeatNone,
 }
-
-const trunkGroupUrlSuffix = "/operational/global/globalTrunkGroupStatus/"
 
 func getTGUrl(ctx lib.MetricContext) string {
 	return ctx.APIBase + trunkGroupUrlSuffix
@@ -52,11 +55,17 @@ var tgMetrics = map[string]*prometheus.Desc{
 }
 
 func processTGs(ctx lib.MetricContext, xmlBody *[]byte, ch chan<- prometheus.Metric, result chan<- lib.MetricResult) {
-	tgs := new(trunkGroupCollection)
+	var (
+		errors []*error
+		tgs    = new(trunkGroupCollection)
+	)
+
 	err := xml.Unmarshal(*xmlBody, &tgs)
+
 	if err != nil {
 		log.Errorf("Failed to deserialize globalTrunkGroupStatus XML: %v", err)
-		result <- lib.MetricResult{Success: false, Errors: []*error{&err}}
+		errors = append(errors, &err)
+		result <- lib.MetricResult{Name: trunkGroupName, Success: false, Errors: errors}
 		return
 	}
 
@@ -69,8 +78,9 @@ func processTGs(ctx lib.MetricContext, xmlBody *[]byte, ch chan<- prometheus.Met
 		ch <- prometheus.MustNewConstMetric(tgMetrics["TG_State"], prometheus.GaugeValue, trunkGroupStatus.stateToMetric(*tg), tg.Zone, tg.Name)
 		ch <- prometheus.MustNewConstMetric(tgMetrics["TG_OBState"], prometheus.GaugeValue, trunkGroupStatus.outStateToMetric(*tg), tg.Zone, tg.Name)
 	}
+
 	log.Info("Trunk Group Metrics collected")
-	result <- lib.MetricResult{Success: true}
+	result <- lib.MetricResult{Name: trunkGroupName, Success: true}
 }
 
 /*

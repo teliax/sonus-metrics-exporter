@@ -11,15 +11,18 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	fanName      = "Fan"
+	fanUrlSuffix = "/operational/system/fanStatus/"
+)
+
 var FanMetric = lib.SonusMetric{
-	Name:       "Fan",
+	Name:       fanName,
 	Processor:  processFans,
 	URLGetter:  getFanUrl,
 	APIMetrics: fanMetrics,
 	Repetition: lib.RepeatNone,
 }
-
-const fanUrlSuffix = "/operational/system/fanStatus/"
 
 func getFanUrl(ctx lib.MetricContext) string {
 	return ctx.APIBase + fanUrlSuffix
@@ -34,11 +37,17 @@ var fanMetrics = map[string]*prometheus.Desc{
 }
 
 func processFans(ctx lib.MetricContext, xmlBody *[]byte, ch chan<- prometheus.Metric, result chan<- lib.MetricResult) {
-	fans := new(fanCollection)
+	var (
+		errors []*error
+		fans   = new(fanCollection)
+	)
+
 	err := xml.Unmarshal(*xmlBody, &fans)
+
 	if err != nil {
 		log.Errorf("Failed to deserialize fanStatus XML: %v", err)
-		result <- lib.MetricResult{Success: false, Errors: []*error{&err}}
+		errors = append(errors, &err)
+		result <- lib.MetricResult{Name: fanName, Success: false, Errors: errors}
 		return
 	}
 
@@ -46,12 +55,14 @@ func processFans(ctx lib.MetricContext, xmlBody *[]byte, ch chan<- prometheus.Me
 		var fanRpm, err = fanStatus.speedToRPM(*fan)
 		if err != nil {
 			log.Errorf("Failed to convert fan speed (%q) to rpm: %v", fan.Speed, err)
+			errors = append(errors, &err)
 			break
 		}
 		ch <- prometheus.MustNewConstMetric(fanMetrics["Fan_Speed"], prometheus.GaugeValue, fanRpm, fan.ServerName, fan.FanID)
 	}
+
 	log.Info("Fan Metrics collected")
-	result <- lib.MetricResult{Success: true}
+	result <- lib.MetricResult{Name: fanName, Success: true, Errors: errors}
 }
 
 /*

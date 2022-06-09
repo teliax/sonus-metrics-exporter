@@ -137,3 +137,16 @@ sonus_TG_usage_total{direction="inbound",name="ZONE1-OUT-TG",zone="ZONE1"} 0
 sonus_TG_usage_total{direction="outbound",name="ZONE1-IN-TG",zone="ZONE1"} 0
 sonus_TG_usage_total{direction="outbound",name="ZONE1-OUT-TG",zone="ZONE1"} 0
 ```
+
+## Exporter Metric Disposition
+
+```
+# HELP sonus_exporter_metric_disposition Number of times each metric has succeeded or failed being collected
+# TYPE sonus_exporter_metric_disposition counter
+sonus_exporter_metric_disposition{name="DSP",successful="true"} 2
+sonus_exporter_metric_disposition{name="Fan",successful="true"} 2
+sonus_exporter_metric_disposition{name="IPInterface",successful="true"} 4
+sonus_exporter_metric_disposition{name="PowerSupply",successful="true"} 2
+sonus_exporter_metric_disposition{name="SipStatistic",successful="true"} 10
+sonus_exporter_metric_disposition{name="TrunkGroup",successful="true"} 2
+```

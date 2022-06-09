@@ -3,7 +3,7 @@ package exporter
 import (
 	"crypto/tls"
 	"net/http"
-	"time"
+	"strconv"
 
 	"sonus-metrics-exporter/config"
 	"sonus-metrics-exporter/lib"
@@ -11,6 +11,18 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 )
+
+// MetricDisposition is a counter metric that tracks success per each metric type
+var MetricDisposition = prometheus.NewCounterVec(prometheus.CounterOpts{
+	Namespace: "sonus",
+	Subsystem: "exporter",
+	Name:      "metric_disposition",
+	Help:      "Number of times each metric has succeeded or failed being collected",
+}, []string{"name", "successful"})
+
+func init() {
+	prometheus.MustRegister(MetricDisposition)
+}
 
 // Exporter is used to store Metrics data and embeds the config struct.
 // This is done so that the relevant functions have easy access to the
@@ -39,16 +51,37 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 
 	var (
 		addressContexts           []*AddressContext
+		apiBase                   string
 		results                   = make(chan lib.MetricResult)
 		requestCount, resultCount uint
+		httpTransport             = &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
+		httpClient                = &http.Client{
+			Transport: httpTransport,
+			Timeout:   e.APITimeout,
+		}
 	)
 
-	transport := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	for i, url := range e.APIURLs {
+		serverStatusUrl := getServerStatusURL(url)
+		response, err := doHTTPRequest(httpClient, serverStatusUrl, e.APIUser, e.APIPass)
+
+		if err != nil {
+			log.Errorf("Error encountered attemping to validate API_URL %q, index %d. Error: %v", url, i, err)
+			continue
+		}
+		if response.response.StatusCode == 200 {
+			apiBase = url
+			log.Infof("Using API_URL %q.", apiBase)
+			break
+		} else {
+			log.Errorf("Non-200 HTTP reponse (%d) validating API_URL %q.", response.response.StatusCode, url)
+		}
+
 	}
-	client := &http.Client{
-		Transport: transport,
-		Timeout:   time.Second * 10,
+
+	if len(apiBase) == 0 {
+		log.Error("Unable to find an active SBC in API_URLS")
+		return
 	}
 
 	// Create addressContext structs, and identify zones and ipInterfaceGroups
@@ -61,19 +94,26 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 
 		addressContexts = append(addressContexts, &ac)
 
-		// TODO: Something should iterate over APIURLs to figure out which url is the active SBC
-		zoneStatusUrl := ac.getZoneStatusURL(lib.MetricContext{APIBase: e.APIURLs[0], AddressContext: ac.Name})
-		response, err = doHTTPRequest(client, zoneStatusUrl, e.APIUser, e.APIPass)
+		zoneStatusUrl := ac.getZoneStatusURL(lib.MetricContext{APIBase: apiBase, AddressContext: ac.Name})
+		response, err = doHTTPRequest(httpClient, zoneStatusUrl, e.APIUser, e.APIPass)
 		if err != nil {
 			log.Errorf("Unable to perform HTTP request to %q. Error: %v", zoneStatusUrl, err)
 			return
 		}
+		if response.response.StatusCode != 200 {
+			log.Errorf("Non-200 HTTP reponse (%d) to %q.", response.response.StatusCode, zoneStatusUrl)
+			return
+		}
 		err = processZones(&ac, response.body, ch)
 
-		ipInterfaceGroupUrl := ac.getIPInterfaceGroupURL(lib.MetricContext{APIBase: e.APIURLs[0], AddressContext: ac.Name})
-		response, err = doHTTPRequest(client, ipInterfaceGroupUrl, e.APIUser, e.APIPass)
+		ipInterfaceGroupUrl := ac.getIPInterfaceGroupURL(lib.MetricContext{APIBase: apiBase, AddressContext: ac.Name})
+		response, err = doHTTPRequest(httpClient, ipInterfaceGroupUrl, e.APIUser, e.APIPass)
 		if err != nil {
-			log.Errorf("Unable to perform HTTP request to %q. Error: %v", zoneStatusUrl, err)
+			log.Errorf("Unable to perform HTTP request to %q. Error: %v", ipInterfaceGroupUrl, err)
+			return
+		}
+		if response.response.StatusCode != 200 {
+			log.Errorf("Non-200 HTTP reponse (%d) to %q.", response.response.StatusCode, ipInterfaceGroupUrl)
 			return
 		}
 		err = processIPInterfaceGroups(&ac, response.body)
@@ -84,12 +124,12 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 		for _, metric := range e.Metrics {
 			if metric.Repetition == lib.RepeatNone {
 				var (
-					ctx = lib.MetricContext{APIBase: e.APIURLs[0]}
+					ctx = lib.MetricContext{APIBase: apiBase}
 					url = metric.URLGetter(ctx)
 				)
 
 				requestCount++
-				response, err := doHTTPRequest(client, url, e.APIUser, e.APIPass)
+				response, err := doHTTPRequest(httpClient, url, e.APIUser, e.APIPass)
 
 				if err != nil {
 					log.Errorf("Unable to perform HTTP request to %q. Error: %v", url, err)
@@ -100,12 +140,12 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 			} else if metric.Repetition == lib.RepeatPerAddressContext {
 				for _, ac := range addressContexts {
 					var (
-						ctx = lib.MetricContext{APIBase: e.APIURLs[0], AddressContext: ac.Name}
+						ctx = lib.MetricContext{APIBase: apiBase, AddressContext: ac.Name}
 						url = metric.URLGetter(ctx)
 					)
 
 					requestCount++
-					response, err := doHTTPRequest(client, url, e.APIUser, e.APIPass)
+					response, err := doHTTPRequest(httpClient, url, e.APIUser, e.APIPass)
 
 					if err != nil {
 						log.Errorf("Unable to perform HTTP request to %q. Error: %v", url, err)
@@ -118,12 +158,12 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 				for _, ac := range addressContexts {
 					for _, zone := range ac.Zones {
 						var (
-							ctx = lib.MetricContext{APIBase: e.APIURLs[0], AddressContext: ac.Name, Zone: zone.Name}
+							ctx = lib.MetricContext{APIBase: apiBase, AddressContext: ac.Name, Zone: zone.Name}
 							url = metric.URLGetter(ctx)
 						)
 
 						requestCount++
-						response, err := doHTTPRequest(client, url, e.APIUser, e.APIPass)
+						response, err := doHTTPRequest(httpClient, url, e.APIUser, e.APIPass)
 
 						if err != nil {
 							log.Errorf("Unable to perform HTTP request to %q. Error: %v", url, err)
@@ -137,12 +177,12 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 				for _, ac := range addressContexts {
 					for _, ipig := range ac.IPInterfaceGroups {
 						var (
-							ctx = lib.MetricContext{APIBase: e.APIURLs[0], AddressContext: ac.Name, IPInterfaceGroup: ipig.Name}
+							ctx = lib.MetricContext{APIBase: apiBase, AddressContext: ac.Name, IPInterfaceGroup: ipig.Name}
 							url = metric.URLGetter(ctx)
 						)
 
 						requestCount++
-						response, err := doHTTPRequest(client, url, e.APIUser, e.APIPass)
+						response, err := doHTTPRequest(httpClient, url, e.APIUser, e.APIPass)
 
 						if err != nil {
 							log.Errorf("Unable to perform HTTP request to %q. Error: %v", url, err)
@@ -158,12 +198,14 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 
 	for {
 		select {
-		case <-results:
-			// TODO: Collect metrics about success/failures
+		case result := <-results:
+			var successString = strconv.FormatBool(result.Success)
+			MetricDisposition.WithLabelValues(result.Name, successString).Inc()
+
 			resultCount++
 			if resultCount == requestCount {
 				log.Info("Done collectin'")
-				transport.CloseIdleConnections()
+				httpTransport.CloseIdleConnections()
 				return
 			}
 		}

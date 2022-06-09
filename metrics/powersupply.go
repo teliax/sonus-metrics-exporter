@@ -9,15 +9,18 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	powerSupplyName      = "PowerSupply"
+	powerSupplyUrlSuffix = "/operational/system/powerSupplyStatus/"
+)
+
 var PowerSupplyMetric = lib.SonusMetric{
-	Name:       "PowerSupply",
+	Name:       powerSupplyName,
 	Processor:  processPowerSupplies,
 	URLGetter:  getPowerSupplyUrl,
 	APIMetrics: powerSupplyMetrics,
 	Repetition: lib.RepeatNone,
 }
-
-const powerSupplyUrlSuffix = "/operational/system/powerSupplyStatus/"
 
 func getPowerSupplyUrl(ctx lib.MetricContext) string {
 	return ctx.APIBase + powerSupplyUrlSuffix
@@ -37,11 +40,17 @@ var powerSupplyMetrics = map[string]*prometheus.Desc{
 }
 
 func processPowerSupplies(ctx lib.MetricContext, xmlBody *[]byte, ch chan<- prometheus.Metric, result chan<- lib.MetricResult) {
-	powerSupplies := new(powerSupplyCollection)
+	var (
+		errors        []*error
+		powerSupplies = new(powerSupplyCollection)
+	)
+
 	err := xml.Unmarshal(*xmlBody, &powerSupplies)
+
 	if err != nil {
 		log.Errorf("Failed to deserialize powerSupplyStatus XML: %v", err)
-		result <- lib.MetricResult{Success: false, Errors: []*error{&err}}
+		errors = append(errors, &err)
+		result <- lib.MetricResult{Name: powerSupplyName, Success: false, Errors: errors}
 		return
 	}
 
@@ -49,8 +58,9 @@ func processPowerSupplies(ctx lib.MetricContext, xmlBody *[]byte, ch chan<- prom
 		ch <- prometheus.MustNewConstMetric(powerSupplyMetrics["PowerSupply_Power_Fault"], prometheus.GaugeValue, psu.powerFaultToMetric(), psu.ServerName, psu.PowerSupplyID)
 		ch <- prometheus.MustNewConstMetric(powerSupplyMetrics["PowerSupply_Voltage_Fault"], prometheus.GaugeValue, psu.voltageFaultToMetric(), psu.ServerName, psu.PowerSupplyID)
 	}
+
 	log.Info("Power Supply Metrics collected")
-	result <- lib.MetricResult{Success: true}
+	result <- lib.MetricResult{Name: powerSupplyName, Success: true}
 }
 
 /*

@@ -9,15 +9,18 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	dspName      = "DSP"
+	dspUrlSuffix = "/operational/system/dspStatus/dspUsage/"
+)
+
 var DSPMetric = lib.SonusMetric{
-	Name:       "DSP",
+	Name:       dspName,
 	Processor:  processDSPUsage,
 	URLGetter:  getDSPUrl,
 	APIMetrics: dspMetrics,
 	Repetition: lib.RepeatNone,
 }
-
-const dspUrlSuffix = "/operational/system/dspStatus/dspUsage/"
 
 func getDSPUrl(ctx lib.MetricContext) string {
 	return ctx.APIBase + dspUrlSuffix
@@ -47,11 +50,17 @@ var dspMetrics = map[string]*prometheus.Desc{
 }
 
 func processDSPUsage(ctx lib.MetricContext, xmlBody *[]byte, ch chan<- prometheus.Metric, result chan<- lib.MetricResult) {
-	dsp := new(dspUsageCollection)
+	var (
+		errors []*error
+		dsp    = new(dspUsageCollection)
+	)
+
 	err := xml.Unmarshal(*xmlBody, &dsp)
+
 	if err != nil {
 		log.Errorf("Failed to deserialize dspStatus XML: %v", err)
-		result <- lib.MetricResult{Success: false, Errors: []*error{&err}}
+		errors = append(errors, &err)
+		result <- lib.MetricResult{Name: dspName, Success: false, Errors: errors}
 		return
 	}
 
@@ -90,7 +99,7 @@ func processDSPUsage(ctx lib.MetricContext, xmlBody *[]byte, ch chan<- prometheu
 	ch <- prometheus.MustNewConstMetric(dspMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.OpusUtilization, d.SystemName, "Opus")
 
 	log.Info("DSP Metrics collected")
-	result <- lib.MetricResult{Success: true}
+	result <- lib.MetricResult{Name: dspName, Success: true}
 }
 
 /*

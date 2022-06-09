@@ -25,6 +25,7 @@ type (
 	}
 
 	MetricResult struct {
+		Name    string
 		Success bool
 		Errors  []*error
 	}

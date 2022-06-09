@@ -10,15 +10,18 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	ipInterfaceName           = "IPInterface"
+	ipInterfaceGroupURLFormat = "%s/operational/addressContext/%s/ipInterfaceGroup/%s/ipInterfaceStatus/"
+)
+
 var IPInterfaceMetric = lib.SonusMetric{
-	Name:       "IPInterface",
+	Name:       ipInterfaceName,
 	Processor:  processIPInterfaceStatus,
 	URLGetter:  getIPInterfaceGroupUrl,
 	APIMetrics: ipInterfaceMetrics,
 	Repetition: lib.RepeatPerAddressContextIpInterfaceGroup,
 }
-
-const ipInterfaceGroupURLFormat = "%s/operational/addressContext/%s/ipInterfaceGroup/%s/ipInterfaceStatus/"
 
 func getIPInterfaceGroupUrl(ctx lib.MetricContext) string {
 	return fmt.Sprintf(ipInterfaceGroupURLFormat, ctx.APIBase, ctx.AddressContext, ctx.IPInterfaceGroup)
@@ -58,11 +61,22 @@ var ipInterfaceMetrics = map[string]*prometheus.Desc{
 }
 
 func processIPInterfaceStatus(ctx lib.MetricContext, xmlBody *[]byte, ch chan<- prometheus.Metric, result chan<- lib.MetricResult) {
-	ipInterfaces := new(ipInterfaceStatusCollection)
+	var (
+		errors       []*error
+		ipInterfaces = new(ipInterfaceStatusCollection)
+	)
+
+	if len(*xmlBody) == 0 {
+		result <- lib.MetricResult{Name: ipInterfaceName, Success: true}
+		return
+	}
+
 	err := xml.Unmarshal(*xmlBody, &ipInterfaces)
+
 	if err != nil {
 		log.Errorf("Failed to deserialize ipInterfaceStatus XML: %v", err)
-		result <- lib.MetricResult{Success: false, Errors: []*error{&err}}
+		errors = append(errors, &err)
+		result <- lib.MetricResult{Name: ipInterfaceName, Success: false, Errors: errors}
 		return
 	}
 
@@ -77,8 +91,9 @@ func processIPInterfaceStatus(ctx lib.MetricContext, xmlBody *[]byte, ch chan<- 
 
 		ch <- prometheus.MustNewConstMetric(ipInterfaceMetrics["IPInterface_Media_Streams"], prometheus.GaugeValue, ipInterfaceGroup.NumMediaStreams, ipInterfaceGroup.Name)
 	}
+
 	log.Infof("IP Interface Metrics for Address Context %q, ipInterfaceGroup %q collected", ctx.AddressContext, ctx.IPInterfaceGroup)
-	result <- lib.MetricResult{Success: true}
+	result <- lib.MetricResult{Name: ipInterfaceName, Success: true}
 }
 
 /*
