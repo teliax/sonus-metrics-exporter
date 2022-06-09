@@ -15,6 +15,7 @@ This exporter is setup to take input from environment variables:
 
 ### Optional
 * `API_ADDRESSCONTEXTS` Space-separated list of addressContexts to iterate over, defaults to `default`
+* `API_TIMEOUT` HTTP client timeout in seconds, defaults to `10`
 * `LISTEN_PORT` The port you wish to run the container on, the Dockerfile defaults this to `9172`
 * `METRICS_PATH` the metrics URL path you wish to use, defaults to `/metrics`
 * `LOG_LEVEL` The level of logging the exporter will run with, defaults to `debug`

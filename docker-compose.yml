@@ -10,7 +10,7 @@ services:
       - 9172:9172
     image: teliax/sonus-metrics-exporter:latest
     environment:
-      - API_URL=https://127.0.0.1/api
+      - API_URLS=https://127.0.0.1/api
       - API_USER=username
       - API_PASSWORD=password
       - LISTEN_PORT=9172
