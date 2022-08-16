@@ -7,15 +7,15 @@ import (
 	"net/http"
 )
 
-// HTTPResponse struct is used to store http.Response and associated data
-type HTTPResponse struct {
+// httpResponse struct is used to store http.Response and associated data
+type httpResponse struct {
 	url      string
 	response *http.Response
 	body     *[]byte
 }
 
-// doHTTPRequest makes an individual HTTP request and returns a *HTTPResponse
-func doHTTPRequest(client *http.Client, url string, user string, pass string) (*HTTPResponse, error) {
+// doHTTPRequest makes an individual HTTP request and returns a *httpResponse
+func doHTTPRequest(client *http.Client, url string, user string, pass string) (*httpResponse, error) {
 	log.Infof("Fetching %q \n", url)
 
 	req, err := http.NewRequest("GET", url, nil)
@@ -45,5 +45,5 @@ func doHTTPRequest(client *http.Client, url string, user string, pass string) (*
 		return nil, err
 	}
 
-	return &HTTPResponse{url, resp, &body}, nil
+	return &httpResponse{url, resp, &body}, nil
 }

@@ -11,19 +11,23 @@ type (
 	// SonusMetric describes a class of metric, and how to load and process its data
 	SonusMetric struct {
 		Name       string
-		Processor  func(MetricContext, *[]byte, chan<- prometheus.Metric, chan<- MetricResult)
+		Processor  func(MetricContext, *[]byte)
 		URLGetter  func(MetricContext) string
 		APIMetrics map[string]*prometheus.Desc
 		Repetition
 	}
 
+	// MetricContext contains information and channels used by metric collectors to do their thing
 	MetricContext struct {
 		APIBase          string
 		AddressContext   string
 		Zone             string
 		IPInterfaceGroup string
+		MetricChannel    chan<- prometheus.Metric
+		ResultChannel    chan<- MetricResult
 	}
 
+	// MetricResult indicates success or failure+errors from a metric collector
 	MetricResult struct {
 		Name    string
 		Success bool

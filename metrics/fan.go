@@ -36,7 +36,7 @@ var fanMetrics = map[string]*prometheus.Desc{
 	),
 }
 
-func processFans(ctx lib.MetricContext, xmlBody *[]byte, ch chan<- prometheus.Metric, result chan<- lib.MetricResult) {
+func processFans(ctx lib.MetricContext, xmlBody *[]byte) {
 	var (
 		errors []*error
 		fans   = new(fanCollection)
@@ -47,7 +47,7 @@ func processFans(ctx lib.MetricContext, xmlBody *[]byte, ch chan<- prometheus.Me
 	if err != nil {
 		log.Errorf("Failed to deserialize fanStatus XML: %v", err)
 		errors = append(errors, &err)
-		result <- lib.MetricResult{Name: fanName, Success: false, Errors: errors}
+		ctx.ResultChannel <- lib.MetricResult{Name: fanName, Success: false, Errors: errors}
 		return
 	}
 
@@ -58,11 +58,11 @@ func processFans(ctx lib.MetricContext, xmlBody *[]byte, ch chan<- prometheus.Me
 			errors = append(errors, &err)
 			break
 		}
-		ch <- prometheus.MustNewConstMetric(fanMetrics["Fan_Speed"], prometheus.GaugeValue, fanRpm, fan.ServerName, fan.FanID)
+		ctx.MetricChannel <- prometheus.MustNewConstMetric(fanMetrics["Fan_Speed"], prometheus.GaugeValue, fanRpm, fan.ServerName, fan.FanID)
 	}
 
 	log.Info("Fan Metrics collected")
-	result <- lib.MetricResult{Name: fanName, Success: true, Errors: errors}
+	ctx.ResultChannel <- lib.MetricResult{Name: fanName, Success: true, Errors: errors}
 }
 
 /*

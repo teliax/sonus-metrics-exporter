@@ -14,11 +14,11 @@ func getServerStatusURL(apiBase string) string {
 	return fmt.Sprintf("%s/operational/system/serverStatus/", apiBase)
 }
 
-func (a *AddressContext) getZoneStatusURL(ctx lib.MetricContext) string {
+func (a *addressContext) getZoneStatusURL(ctx lib.MetricContext) string {
 	return fmt.Sprintf("%s/operational/addressContext/%s/zoneStatus/", ctx.APIBase, a.Name)
 }
 
-func (a *AddressContext) getIPInterfaceGroupURL(ctx lib.MetricContext) string {
+func (a *addressContext) getIPInterfaceGroupURL(ctx lib.MetricContext) string {
 	return fmt.Sprintf("%s/operational/addressContext/%s/ipInterfaceGroup/", ctx.APIBase, a.Name)
 }
 
@@ -35,7 +35,7 @@ var zoneStatusMetrics = map[string]*prometheus.Desc{
 	),
 }
 
-type AddressContext struct {
+type addressContext struct {
 	Name              string
 	Zones             []*zoneStatus       `xml:"http://sonusnet.com/ns/mibs/SONUS-ZONE/1.0 zoneStatus"`
 	IPInterfaceGroups []*ipInterfaceGroup `xml:"http://sonusnet.com/ns/mibs/SONUS-GEN2-IP-INTERFACE/1.0 ipInterfaceGroup"`
@@ -57,7 +57,7 @@ type ipInterfaceGroup struct {
 	} `xml:"http://sonusnet.com/ns/mibs/SONUS-GEN2-IP-INTERFACE/1.0 ipInterface"`
 }
 
-func processZones(addressContext *AddressContext, xmlBody *[]byte, ch chan<- prometheus.Metric) error {
+func processZones(addressContext *addressContext, xmlBody *[]byte, ch chan<- prometheus.Metric) error {
 	err := xml.Unmarshal(*xmlBody, &addressContext)
 	if err != nil {
 		log.Errorf("Failed to deserialize zoneStatus XML: %v", err)
@@ -73,7 +73,7 @@ func processZones(addressContext *AddressContext, xmlBody *[]byte, ch chan<- pro
 	return nil
 }
 
-func processIPInterfaceGroups(addressContext *AddressContext, xmlBody *[]byte) error {
+func processIPInterfaceGroups(addressContext *addressContext, xmlBody *[]byte) error {
 	err := xml.Unmarshal(*xmlBody, &addressContext)
 	if err != nil {
 		log.Errorf("Failed to deserialize ipInterfaceGroup XML: %v", err)

@@ -51,9 +51,9 @@ func main() {
 	http.Handle(applicationCfg.MetricsPath(), promhttp.Handler())
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`<html>
-		                <head><title>Sonus Trunkgroup Exporter</title></head>
+		                <head><title>Sonus Exporter</title></head>
 		                <body>
-		                   <h1>Sonus Trunkgroup Metrics Exporter</h1>
+		                   <h1>Sonus Metrics Exporter</h1>
 						   <p>For more information, visit <a href=https://github.com/teliax/sonus-metrics-exporter>GitHub</a></p>
 		                   <p><a href='` + applicationCfg.MetricsPath() + `'>Metrics</a></p>
 		                   </body>

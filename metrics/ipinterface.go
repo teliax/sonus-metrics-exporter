@@ -60,14 +60,14 @@ var ipInterfaceMetrics = map[string]*prometheus.Desc{
 	),
 }
 
-func processIPInterfaceStatus(ctx lib.MetricContext, xmlBody *[]byte, ch chan<- prometheus.Metric, result chan<- lib.MetricResult) {
+func processIPInterfaceStatus(ctx lib.MetricContext, xmlBody *[]byte) {
 	var (
 		errors       []*error
 		ipInterfaces = new(ipInterfaceStatusCollection)
 	)
 
 	if len(*xmlBody) == 0 {
-		result <- lib.MetricResult{Name: ipInterfaceName, Success: true}
+		ctx.ResultChannel <- lib.MetricResult{Name: ipInterfaceName, Success: true}
 		return
 	}
 
@@ -76,24 +76,24 @@ func processIPInterfaceStatus(ctx lib.MetricContext, xmlBody *[]byte, ch chan<- 
 	if err != nil {
 		log.Errorf("Failed to deserialize ipInterfaceStatus XML: %v", err)
 		errors = append(errors, &err)
-		result <- lib.MetricResult{Name: ipInterfaceName, Success: false, Errors: errors}
+		ctx.ResultChannel <- lib.MetricResult{Name: ipInterfaceName, Success: false, Errors: errors}
 		return
 	}
 
 	for _, ipInterfaceGroup := range ipInterfaces.IPInterfaces {
-		ch <- prometheus.MustNewConstMetric(ipInterfaceMetrics["IPInterface_Oper_Status"], prometheus.GaugeValue, ipInterfaceGroup.operStateToMetric(), ipInterfaceGroup.Name, ipInterfaceGroup.OperState)
+		ctx.MetricChannel <- prometheus.MustNewConstMetric(ipInterfaceMetrics["IPInterface_Oper_Status"], prometheus.GaugeValue, ipInterfaceGroup.operStateToMetric(), ipInterfaceGroup.Name, ipInterfaceGroup.OperState)
 
-		ch <- prometheus.MustNewConstMetric(ipInterfaceMetrics["IPInterface_Packets_Received"], prometheus.CounterValue, ipInterfaceGroup.RxPackets, ipInterfaceGroup.Name)
-		ch <- prometheus.MustNewConstMetric(ipInterfaceMetrics["IPInterface_Packets_Transmitted"], prometheus.CounterValue, ipInterfaceGroup.TxPackets, ipInterfaceGroup.Name)
+		ctx.MetricChannel <- prometheus.MustNewConstMetric(ipInterfaceMetrics["IPInterface_Packets_Received"], prometheus.CounterValue, ipInterfaceGroup.RxPackets, ipInterfaceGroup.Name)
+		ctx.MetricChannel <- prometheus.MustNewConstMetric(ipInterfaceMetrics["IPInterface_Packets_Transmitted"], prometheus.CounterValue, ipInterfaceGroup.TxPackets, ipInterfaceGroup.Name)
 
-		ch <- prometheus.MustNewConstMetric(ipInterfaceMetrics["IPInterface_Bandwidth_Receive"], prometheus.GaugeValue, ipInterfaceGroup.RxActualBandwidth, ipInterfaceGroup.Name)
-		ch <- prometheus.MustNewConstMetric(ipInterfaceMetrics["IPInterface_Bandwidth_Transmit"], prometheus.GaugeValue, ipInterfaceGroup.TxActualBandwidth, ipInterfaceGroup.Name)
+		ctx.MetricChannel <- prometheus.MustNewConstMetric(ipInterfaceMetrics["IPInterface_Bandwidth_Receive"], prometheus.GaugeValue, ipInterfaceGroup.RxActualBandwidth, ipInterfaceGroup.Name)
+		ctx.MetricChannel <- prometheus.MustNewConstMetric(ipInterfaceMetrics["IPInterface_Bandwidth_Transmit"], prometheus.GaugeValue, ipInterfaceGroup.TxActualBandwidth, ipInterfaceGroup.Name)
 
-		ch <- prometheus.MustNewConstMetric(ipInterfaceMetrics["IPInterface_Media_Streams"], prometheus.GaugeValue, ipInterfaceGroup.NumMediaStreams, ipInterfaceGroup.Name)
+		ctx.MetricChannel <- prometheus.MustNewConstMetric(ipInterfaceMetrics["IPInterface_Media_Streams"], prometheus.GaugeValue, ipInterfaceGroup.NumMediaStreams, ipInterfaceGroup.Name)
 	}
 
 	log.Infof("IP Interface Metrics for Address Context %q, ipInterfaceGroup %q collected", ctx.AddressContext, ctx.IPInterfaceGroup)
-	result <- lib.MetricResult{Name: ipInterfaceName, Success: true}
+	ctx.ResultChannel <- lib.MetricResult{Name: ipInterfaceName, Success: true}
 }
 
 /*

@@ -39,7 +39,7 @@ var powerSupplyMetrics = map[string]*prometheus.Desc{
 	),
 }
 
-func processPowerSupplies(ctx lib.MetricContext, xmlBody *[]byte, ch chan<- prometheus.Metric, result chan<- lib.MetricResult) {
+func processPowerSupplies(ctx lib.MetricContext, xmlBody *[]byte) {
 	var (
 		errors        []*error
 		powerSupplies = new(powerSupplyCollection)
@@ -50,17 +50,17 @@ func processPowerSupplies(ctx lib.MetricContext, xmlBody *[]byte, ch chan<- prom
 	if err != nil {
 		log.Errorf("Failed to deserialize powerSupplyStatus XML: %v", err)
 		errors = append(errors, &err)
-		result <- lib.MetricResult{Name: powerSupplyName, Success: false, Errors: errors}
+		ctx.ResultChannel <- lib.MetricResult{Name: powerSupplyName, Success: false, Errors: errors}
 		return
 	}
 
 	for _, psu := range powerSupplies.PowerSupplyStatus {
-		ch <- prometheus.MustNewConstMetric(powerSupplyMetrics["PowerSupply_Power_Fault"], prometheus.GaugeValue, psu.powerFaultToMetric(), psu.ServerName, psu.PowerSupplyID)
-		ch <- prometheus.MustNewConstMetric(powerSupplyMetrics["PowerSupply_Voltage_Fault"], prometheus.GaugeValue, psu.voltageFaultToMetric(), psu.ServerName, psu.PowerSupplyID)
+		ctx.MetricChannel <- prometheus.MustNewConstMetric(powerSupplyMetrics["PowerSupply_Power_Fault"], prometheus.GaugeValue, psu.powerFaultToMetric(), psu.ServerName, psu.PowerSupplyID)
+		ctx.MetricChannel <- prometheus.MustNewConstMetric(powerSupplyMetrics["PowerSupply_Voltage_Fault"], prometheus.GaugeValue, psu.voltageFaultToMetric(), psu.ServerName, psu.PowerSupplyID)
 	}
 
 	log.Info("Power Supply Metrics collected")
-	result <- lib.MetricResult{Name: powerSupplyName, Success: true}
+	ctx.ResultChannel <- lib.MetricResult{Name: powerSupplyName, Success: true}
 }
 
 /*
