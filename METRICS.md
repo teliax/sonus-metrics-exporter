@@ -85,6 +85,14 @@ sonus_powersupply_voltagefault{powerSupplyID="PSB",server="sbc01a"} 0
 sonus_powersupply_voltagefault{powerSupplyID="PSB",server="sbc01b"} 0
 ```
 
+## SIP ARS Status
+
+```
+# HELP sonus_sipars_endpoint_status State of a sipArs monitored endpoint
+# TYPE sonus_sipars_endpoint_status gauge
+sonus_sipars_endpoint_status{endpoint_address="52.11.22.33",endpoint_port="5060",state_name="blacklisted",zone="ZONE1"} 1
+```
+
 ## Trunk Groups
 
 ```
@@ -149,4 +157,17 @@ sonus_exporter_metric_disposition{name="IPInterface",successful="true"} 4
 sonus_exporter_metric_disposition{name="PowerSupply",successful="true"} 2
 sonus_exporter_metric_disposition{name="SipStatistic",successful="true"} 10
 sonus_exporter_metric_disposition{name="TrunkGroup",successful="true"} 2
+```
+
+## Exporter Metric Duration
+
+```
+sonus_exporter_metric_duration{name="IPInterface",stage="http",quantile="0.5"} 0.071724695
+sonus_exporter_metric_duration{name="IPInterface",stage="http",quantile="0.9"} 0.071964337
+sonus_exporter_metric_duration{name="IPInterface",stage="http",quantile="0.99"} 0.071964337
+sonus_exporter_metric_duration_sum{name="IPInterface",stage="http"} 0.425327406
+sonus_exporter_metric_duration_count{name="IPInterface",stage="http"} 6
+sonus_exporter_metric_duration{name="IPInterface",stage="process",quantile="0.5"} 0.000705656
+sonus_exporter_metric_duration{name="IPInterface",stage="process",quantile="0.9"} 0.00397619
+sonus_exporter_metric_duration{name="IPInterface",stage="process",quantile="0.99"} 0.00397619
 ```
