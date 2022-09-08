@@ -25,6 +25,7 @@ var (
 		metrics.IPInterfaceMetric,
 		metrics.PowerSupplyMetric,
 		metrics.SipStatisticMetric,
+		metrics.SipArsMetric,
 		metrics.TGMetric,
 	}
 )
