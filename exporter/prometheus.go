@@ -14,6 +14,8 @@ import (
 )
 
 var (
+	httpTransport = &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
+
 	// metricDisposition is a counter metric that tracks success per each metric type
 	metricDisposition = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "sonus",
@@ -47,8 +49,11 @@ type Exporter struct {
 
 // Describe - loops through the API metrics and passes them to prometheus.Describe
 func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
-	for _, am := range zoneStatusMetrics {
-		ch <- am
+	for _, sm := range serverStatusMetrics {
+		ch <- sm
+	}
+	for _, zm := range zoneStatusMetrics {
+		ch <- zm
 	}
 
 	for _, m := range e.Metrics {
@@ -66,9 +71,9 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 		addressContexts           []*addressContext
 		apiBase                   string
 		collectCount, resultCount uint
-		httpTransport             = &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
 		httpClient                = &http.Client{Transport: httpTransport, Timeout: e.APITimeout}
 		results                   = make(chan lib.MetricResult)
+		serverStatusBody          *[]byte
 	)
 
 	for i, url := range e.APIURLs {
@@ -82,6 +87,7 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 		if response.response.StatusCode == 200 {
 			apiBase = url
 			log.Infof("Using API_URL %q.", apiBase)
+			serverStatusBody = response.body
 			break
 		} else {
 			log.Errorf("Non-200 HTTP reponse (%d) validating API_URL %q.", response.response.StatusCode, url)
@@ -92,6 +98,11 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 	if len(apiBase) == 0 {
 		log.Error("Unable to find an active SBC in API_URLS")
 		return
+	}
+
+	serverStatusErr := processServerStatus(serverStatusBody, ch)
+	if serverStatusErr != nil {
+		log.Errorf("Error while processing serverStatus: %v", serverStatusErr)
 	}
 
 	// Create addressContext structs, and identify zones and ipInterfaceGroups

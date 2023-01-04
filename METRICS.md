@@ -85,6 +85,27 @@ sonus_powersupply_voltagefault{powerSupplyID="PSB",server="sbc01a"} 0
 sonus_powersupply_voltagefault{powerSupplyID="PSB",server="sbc01b"} 0
 ```
 
+## Server Status
+
+```
+# HELP sonus_system_redundancy_role Current role of server. 1 = active
+# TYPE sonus_system_redundancy_role gauge
+sonus_system_redundancy_role{role_name="active",server="sbc01a"} 1
+sonus_system_redundancy_role{role_name="standby",server="sbc01b"} 0
+
+# HELP sonus_system_sync_status Current synchronization status. 1 = syncCompleted
+# TYPE sonus_system_sync_status gauge
+sonus_system_sync_status{server="sbc01a",status_name="syncCompleted"} 1
+sonus_system_sync_status{server="sbc01b",status_name="syncCompleted"} 1
+
+# HELP sonus_system_uptime Current uptime of server, in seconds
+# TYPE sonus_system_uptime counter
+sonus_system_uptime{server="sbc01a",type="application"} 23400
+sonus_system_uptime{server="sbc01a",type="os"} 23499
+sonus_system_uptime{server="sbc01b",type="application"} 568
+sonus_system_uptime{server="sbc01b",type="os"} 954
+```
+
 ## SIP ARS Status
 
 ```
