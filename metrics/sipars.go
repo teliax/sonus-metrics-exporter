@@ -42,7 +42,7 @@ func processSipArs(ctx lib.MetricContext, xmlBody *[]byte) {
 
 	if len(*xmlBody) == 0 {
 		// Empty response is fine, no need to attempt to parse and error out
-		ctx.ResultChannel <- lib.MetricResult{Success: true}
+		ctx.ResultChannel <- lib.MetricResult{Name: sipArsName, Success: true}
 		return
 	}
 
