@@ -71,61 +71,81 @@ func processSipStatistics(ctx lib.MetricContext, xmlBody *[]byte) {
 	}
 
 	for _, sipStat := range sipStats.SipStatistics {
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Req_Sent"], prometheus.CounterValue, sipStat.SndInvite, ctx.Zone, sipStat.Name, "INVITE")
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Req_Sent"], prometheus.CounterValue, sipStat.SndPrack, ctx.Zone, sipStat.Name, "PRACK")
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Req_Sent"], prometheus.CounterValue, sipStat.SndInfo, ctx.Zone, sipStat.Name, "INFO")
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Req_Sent"], prometheus.CounterValue, sipStat.SndRefer, ctx.Zone, sipStat.Name, "REFER")
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Req_Sent"], prometheus.CounterValue, sipStat.SndBye, ctx.Zone, sipStat.Name, "BYE")
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Req_Sent"], prometheus.CounterValue, sipStat.SndCancel, ctx.Zone, sipStat.Name, "CANCEL")
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Req_Sent"], prometheus.CounterValue, sipStat.SndRegister, ctx.Zone, sipStat.Name, "REGISTER")
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Req_Sent"], prometheus.CounterValue, sipStat.SndUpdate, ctx.Zone, sipStat.Name, "UPDATE")
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Req_Sent"], prometheus.CounterValue, sipStat.SndSubscriber, ctx.Zone, sipStat.Name, "SUBSCRIBE") // Is this correct? "subscriber"?
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Req_Sent"], prometheus.CounterValue, sipStat.SndNotify, ctx.Zone, sipStat.Name, "NOTIFY")
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Req_Sent"], prometheus.CounterValue, sipStat.SndOption, ctx.Zone, sipStat.Name, "OPTIONS")
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Req_Sent"], prometheus.CounterValue, sipStat.SndMessage, ctx.Zone, sipStat.Name, "MESSAGE")
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Req_Sent"], prometheus.CounterValue, sipStat.SndPublish, ctx.Zone, sipStat.Name, "PUBLISH")
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Req_Sent"], prometheus.CounterValue, sipStat.InvReTransmit, ctx.Zone, sipStat.Name, "INVITE (retrans)")
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Req_Sent"], prometheus.CounterValue, sipStat.RegReTransmit, ctx.Zone, sipStat.Name, "REGISTER (retrans)")
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Req_Sent"], prometheus.CounterValue, sipStat.ByeReTransmit, ctx.Zone, sipStat.Name, "BYE (retrans)")
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Req_Sent"], prometheus.CounterValue, sipStat.CancelReTransmit, ctx.Zone, sipStat.Name, "CANCEL (retrans)")
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Req_Sent"], prometheus.CounterValue, sipStat.OtherReTransmit, ctx.Zone, sipStat.Name, "Other (retrans)")
+		var sipReqSent = map[string]float64{
+			"INVITE":             sipStat.SndInvite,
+			"PRACK":              sipStat.SndPrack,
+			"INFO":               sipStat.SndInfo,
+			"REFER":              sipStat.SndRefer,
+			"BYE":                sipStat.SndBye,
+			"CANCEL":             sipStat.SndCancel,
+			"REGISTER":           sipStat.SndRegister,
+			"UPDATE":             sipStat.SndUpdate,
+			"SUBSCRIBE":          sipStat.SndSubscriber,
+			"NOTIFY":             sipStat.SndNotify,
+			"OPTIONS":            sipStat.SndOption,
+			"MESSAGE":            sipStat.SndMessage,
+			"PUBLISH":            sipStat.SndPublish,
+			"INVITE (retrans)":   sipStat.InvReTransmit,
+			"REGISTER (retrans)": sipStat.RegReTransmit,
+			"BYE (retrans)":      sipStat.ByeReTransmit,
+			"CANCEL (retrans)":   sipStat.CancelReTransmit,
+			"Other (retrans)":    sipStat.OtherReTransmit,
+		}
+		for n, v := range sipReqSent {
+			ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Req_Sent"], prometheus.CounterValue, v, ctx.Zone, sipStat.TrunkGroupName, n)
+		}
 
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Req_Received"], prometheus.CounterValue, sipStat.RcvInvite, ctx.Zone, sipStat.Name, "INVITE")
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Req_Received"], prometheus.CounterValue, sipStat.RcvPrack, ctx.Zone, sipStat.Name, "PRACK")
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Req_Received"], prometheus.CounterValue, sipStat.RcvInfo, ctx.Zone, sipStat.Name, "INFO")
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Req_Received"], prometheus.CounterValue, sipStat.RcvRefer, ctx.Zone, sipStat.Name, "REFER")
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Req_Received"], prometheus.CounterValue, sipStat.RcvBye, ctx.Zone, sipStat.Name, "BYE")
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Req_Received"], prometheus.CounterValue, sipStat.RcvCancel, ctx.Zone, sipStat.Name, "CANCEL")
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Req_Received"], prometheus.CounterValue, sipStat.RcvRegister, ctx.Zone, sipStat.Name, "REGISTER")
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Req_Received"], prometheus.CounterValue, sipStat.RcvUpdate, ctx.Zone, sipStat.Name, "UPDATE")
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Req_Received"], prometheus.CounterValue, sipStat.RcvSubscriber, ctx.Zone, sipStat.Name, "SUBSCRIBE") // Is this correct? "subscriber"?
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Req_Received"], prometheus.CounterValue, sipStat.RcvNotify, ctx.Zone, sipStat.Name, "NOTIFY")
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Req_Received"], prometheus.CounterValue, sipStat.RcvOption, ctx.Zone, sipStat.Name, "OPTIONS")
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Req_Received"], prometheus.CounterValue, sipStat.RcvMessage, ctx.Zone, sipStat.Name, "MESSAGE")
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Req_Received"], prometheus.CounterValue, sipStat.RcvPublish, ctx.Zone, sipStat.Name, "PUBLISH")
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Req_Received"], prometheus.CounterValue, sipStat.RcvUnknownMsg, ctx.Zone, sipStat.Name, "Unknown")
+		var sipReqReceived = map[string]float64{
+			"INVITE":    sipStat.RcvInvite,
+			"PRACK":     sipStat.RcvPrack,
+			"INFO":      sipStat.RcvInfo,
+			"REFER":     sipStat.RcvRefer,
+			"BYE":       sipStat.RcvBye,
+			"CANCEL":    sipStat.RcvCancel,
+			"REGISTER":  sipStat.RcvRegister,
+			"UPDATE":    sipStat.RcvUpdate,
+			"SUBSCRIBE": sipStat.RcvSubscriber,
+			"NOTIFY":    sipStat.RcvNotify,
+			"OPTIONS":   sipStat.RcvOption,
+			"MESSAGE":   sipStat.RcvMessage,
+			"PUBLISH":   sipStat.RcvPublish,
+			"Unknown":   sipStat.RcvUnknownMsg,
+		}
+		for n, v := range sipReqReceived {
+			ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Req_Received"], prometheus.CounterValue, v, ctx.Zone, sipStat.TrunkGroupName, n)
+		}
 
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Resp_Sent"], prometheus.CounterValue, sipStat.SndAck, ctx.Zone, sipStat.Name, "ACK")
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Resp_Sent"], prometheus.CounterValue, sipStat.Snd18x, ctx.Zone, sipStat.Name, "18x")
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Resp_Sent"], prometheus.CounterValue, sipStat.Snd1xx, ctx.Zone, sipStat.Name, "1xx")
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Resp_Sent"], prometheus.CounterValue, sipStat.Snd2xx, ctx.Zone, sipStat.Name, "2xx")
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Resp_Sent"], prometheus.CounterValue, sipStat.SndNonInv2xx, ctx.Zone, sipStat.Name, "Non-INVITE 2xx")
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Resp_Sent"], prometheus.CounterValue, sipStat.Snd3xx, ctx.Zone, sipStat.Name, "3xx")
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Resp_Sent"], prometheus.CounterValue, sipStat.Snd4xx, ctx.Zone, sipStat.Name, "4xx")
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Resp_Sent"], prometheus.CounterValue, sipStat.Snd5xx, ctx.Zone, sipStat.Name, "5xx")
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Resp_Sent"], prometheus.CounterValue, sipStat.Snd6xx, ctx.Zone, sipStat.Name, "6xx")
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Resp_Sent"], prometheus.CounterValue, sipStat.SndNonInvErr, ctx.Zone, sipStat.Name, "Non-INVITE error")
+		var sipRespSent = map[string]float64{
+			"ACK":              sipStat.SndAck,
+			"18x":              sipStat.Snd18x,
+			"1xx":              sipStat.Snd1xx,
+			"2xx":              sipStat.Snd2xx,
+			"Non-INVITE 2xx":   sipStat.SndNonInv2xx,
+			"3xx":              sipStat.Snd3xx,
+			"4xx":              sipStat.Snd4xx,
+			"5xx":              sipStat.Snd5xx,
+			"6xx":              sipStat.Snd6xx,
+			"Non-INVITE error": sipStat.SndNonInvErr,
+		}
+		for n, v := range sipRespSent {
+			ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Resp_Sent"], prometheus.CounterValue, v, ctx.Zone, sipStat.TrunkGroupName, n)
+		}
 
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Resp_Received"], prometheus.CounterValue, sipStat.RcvAck, ctx.Zone, sipStat.Name, "ACK")
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Resp_Received"], prometheus.CounterValue, sipStat.Rcv18x, ctx.Zone, sipStat.Name, "18x")
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Resp_Received"], prometheus.CounterValue, sipStat.Rcv1xx, ctx.Zone, sipStat.Name, "1xx")
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Resp_Received"], prometheus.CounterValue, sipStat.Rcv2xx, ctx.Zone, sipStat.Name, "2xx")
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Resp_Received"], prometheus.CounterValue, sipStat.RcvNonInv2xx, ctx.Zone, sipStat.Name, "Non-INVITE 2xx")
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Resp_Received"], prometheus.CounterValue, sipStat.Rcv3xx, ctx.Zone, sipStat.Name, "3xx")
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Resp_Received"], prometheus.CounterValue, sipStat.Rcv4xx, ctx.Zone, sipStat.Name, "4xx")
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Resp_Received"], prometheus.CounterValue, sipStat.Rcv5xx, ctx.Zone, sipStat.Name, "5xx")
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Resp_Received"], prometheus.CounterValue, sipStat.Rcv6xx, ctx.Zone, sipStat.Name, "6xx")
-		ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Resp_Received"], prometheus.CounterValue, sipStat.RcvNonInvErr, ctx.Zone, sipStat.Name, "Non-INVITE error")
+		var sipRespReceived = map[string]float64{
+			"ACK":              sipStat.RcvAck,
+			"18x":              sipStat.Rcv18x,
+			"1xx":              sipStat.Rcv1xx,
+			"2xx":              sipStat.Rcv2xx,
+			"Non-INVITE 2xx":   sipStat.RcvNonInv2xx,
+			"3xx":              sipStat.Rcv3xx,
+			"4xx":              sipStat.Rcv4xx,
+			"5xx":              sipStat.Rcv5xx,
+			"6xx":              sipStat.Rcv6xx,
+			"Non-INVITE error": sipStat.RcvNonInvErr,
+		}
+		for n, v := range sipRespReceived {
+			ctx.MetricChannel <- prometheus.MustNewConstMetric(sipStatisticMetrics["TG_SIP_Resp_Received"], prometheus.CounterValue, v, ctx.Zone, sipStat.TrunkGroupName, n)
+		}
 	}
 	log.Infof("SIP Statistics Metrics for Address Context %q, zone %q collected", ctx.AddressContext, ctx.Zone)
 	ctx.ResultChannel <- lib.MetricResult{Name: sipStatisticsName, Success: true}
@@ -149,7 +169,7 @@ type sipStatisticCollection struct {
 }
 
 type sipStatistics struct {
-	Name                          string  `xml:"name"`
+	TrunkGroupName                string  `xml:"name"`
 	RcvInvite                     float64 `xml:"rcvInvite"`
 	SndInvite                     float64 `xml:"sndInvite"`
 	RcvAck                        float64 `xml:"rcvAck"`

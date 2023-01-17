@@ -75,28 +75,33 @@ func processDSPUsage(ctx lib.MetricContext, xmlBody *[]byte) {
 
 	ctx.MetricChannel <- prometheus.MustNewConstMetric(dspMetrics["DSP_Compression_Utilization"], prometheus.GaugeValue, d.CompressionUtilization, d.SystemName)
 
-	ctx.MetricChannel <- prometheus.MustNewConstMetric(dspMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.G711Utilization, d.SystemName, "G.711")
-	ctx.MetricChannel <- prometheus.MustNewConstMetric(dspMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.G711SsUtilization, d.SystemName, "G.711 Silence Suppression")
-	ctx.MetricChannel <- prometheus.MustNewConstMetric(dspMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.G726Utilization, d.SystemName, "G.726")
-	ctx.MetricChannel <- prometheus.MustNewConstMetric(dspMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.G7231Utilization, d.SystemName, "G.723.1")
-	ctx.MetricChannel <- prometheus.MustNewConstMetric(dspMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.G722Utilization, d.SystemName, "G.722")
-	ctx.MetricChannel <- prometheus.MustNewConstMetric(dspMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.G7221Utilization, d.SystemName, "G.722.1")
-	ctx.MetricChannel <- prometheus.MustNewConstMetric(dspMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.G729AbUtilization, d.SystemName, "G.729")
-	ctx.MetricChannel <- prometheus.MustNewConstMetric(dspMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.EcmUtilization, d.SystemName, "ECM")
-	ctx.MetricChannel <- prometheus.MustNewConstMetric(dspMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.IlbcUtilization, d.SystemName, "iLBC")
-	ctx.MetricChannel <- prometheus.MustNewConstMetric(dspMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.AmrNbUtilization, d.SystemName, "AMR-NB")
-	ctx.MetricChannel <- prometheus.MustNewConstMetric(dspMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.AmrWbUtilization, d.SystemName, "AMR-WB")
-	ctx.MetricChannel <- prometheus.MustNewConstMetric(dspMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.ToneUtilization, d.SystemName, "Tone")
-	ctx.MetricChannel <- prometheus.MustNewConstMetric(dspMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.G711V8Utilization, d.SystemName, "G.711 V8")
-	ctx.MetricChannel <- prometheus.MustNewConstMetric(dspMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.G711SsV8Utilization, d.SystemName, "G.711 Silence Suppression V8")
-	ctx.MetricChannel <- prometheus.MustNewConstMetric(dspMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.G726V8Utilization, d.SystemName, "G.726 V8")
-	ctx.MetricChannel <- prometheus.MustNewConstMetric(dspMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.G7231V8Utilization, d.SystemName, "G.723.1 V8")
-	ctx.MetricChannel <- prometheus.MustNewConstMetric(dspMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.G722V8Utilization, d.SystemName, "G.722 V8")
-	ctx.MetricChannel <- prometheus.MustNewConstMetric(dspMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.G7221V8Utilization, d.SystemName, "G.722.1 V8")
-	ctx.MetricChannel <- prometheus.MustNewConstMetric(dspMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.G729AbV8Utilization, d.SystemName, "G.729 V8")
-	ctx.MetricChannel <- prometheus.MustNewConstMetric(dspMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.EcmV34Utilization, d.SystemName, "ECM V.34")
-	ctx.MetricChannel <- prometheus.MustNewConstMetric(dspMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.IlbcV8Utilization, d.SystemName, "iLBC V8")
-	ctx.MetricChannel <- prometheus.MustNewConstMetric(dspMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, d.OpusUtilization, d.SystemName, "Opus")
+	var codecUtilization = map[string]float64{
+		"G.711":                        d.G711Utilization,
+		"G.711 Silence Suppression":    d.G711SsUtilization,
+		"G.726":                        d.G726Utilization,
+		"G.723.1":                      d.G7231Utilization,
+		"G.722":                        d.G722Utilization,
+		"G.722.1":                      d.G7221Utilization,
+		"G.729":                        d.G729AbUtilization,
+		"ECM":                          d.EcmUtilization,
+		"iLBC":                         d.IlbcUtilization,
+		"AMR-NB":                       d.AmrNbUtilization,
+		"AMR-WB":                       d.AmrWbUtilization,
+		"Tone":                         d.ToneUtilization,
+		"G.711 V8":                     d.G711V8Utilization,
+		"G.711 Silence Suppression V8": d.G711SsV8Utilization,
+		"G.726 V8":                     d.G726V8Utilization,
+		"G.723.1 V8":                   d.G7231V8Utilization,
+		"G.722 V8":                     d.G722V8Utilization,
+		"G.722.1 V8":                   d.G7221V8Utilization,
+		"G.729 V8":                     d.G729AbV8Utilization,
+		"ECM V.34":                     d.EcmV34Utilization,
+		"iLBC V8":                      d.IlbcV8Utilization,
+		"Opus":                         d.OpusUtilization,
+	}
+	for n, v := range codecUtilization {
+		ctx.MetricChannel <- prometheus.MustNewConstMetric(dspMetrics["DSP_Codec_Utilization"], prometheus.GaugeValue, v, d.SystemName, n)
+	}
 
 	log.Info("DSP Metrics collected")
 	ctx.ResultChannel <- lib.MetricResult{Name: dspName, Success: true}
